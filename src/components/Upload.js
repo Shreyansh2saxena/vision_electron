@@ -332,9 +332,9 @@
  */
  
 import React, { useState } from "react";
-import { api } from "../secrets/Visionapi";
 
-const GOOGLE_API_KEY = api;
+
+const GOOGLE_API_KEY = process.env.REACT_APP_GOOGLE_API_KEY ;
 const GOOGLE_VISION_URL = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`;
 
 export default function VisionOCRJson() {
