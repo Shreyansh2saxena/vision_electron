@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Test Google Vision API OCR</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+    }
+
+    .img-block {
+      margin-bottom: 24px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 12px;
+    }
+
+    img {
+      max-width: 200px;
+      margin-top: 10px;
+      display: block;
+    }
+
+    #timer {
+      margin: 16px 0;
+      font-weight: bold;
+      color: #2354ff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>check</h2>
+  <input type="file" id="imageInput" accept="image/*" multiple />
+  <div id="timer"></div>
+  <div id="results"></div>
+
+  <script>
+    const API_KEY = 'AIzaSyBqPV-U4gUAGxWfVqs6KtKcEnf2q47cltE'; // Replace with your own key
+    const imageInput = document.getElementById('imageInput');
+    const resultsDiv = document.getElementById('results');
+    const timerDiv = document.getElementById('timer');
+
+    // Helper: Converts image file to Base64 string (Promise)
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Helper: Returns <img> preview as a data URL (Promise)
+    function getImagePreview(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function ocrImage(base64Image) {
+      const requestBody = {
+        requests: [
+          {
+            image: { content: base64Image },
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
+          }
+        ]
+      };
+      const response = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+      const result = await response.json();
+      return result.responses?.[0]?.fullTextAnnotation?.text || 'No text found.';
+    }
+
+    imageInput.addEventListener('change', async () => {
+      resultsDiv.innerHTML = '';
+      timerDiv.textContent = '';
+
+      const files = Array.from(imageInput.files);
+      if (files.length === 0) return;
+
+      const t0 = performance.now();
+
+      // Process images in parallel
+      await Promise.all(files.map(async (file, idx) => {
+        // Build DOM for this image's result
+        const block = document.createElement('div');
+        block.className = 'img-block';
+
+        const imgElem = document.createElement('img');
+        imgElem.alt = file.name + ' preview';
+        imgElem.title = file.name;
+
+        const textarea = document.createElement('textarea');
+        textarea.placeholder = 'OCR result will appear here...';
+        textarea.readOnly = true;
+
+        block.appendChild(document.createTextNode(`Image: ${file.name}`));
+        block.appendChild(imgElem);
+        block.appendChild(textarea);
+        resultsDiv.appendChild(block);
+
+        // Show preview
+        imgElem.src = await getImagePreview(file);
+
+        // OCR request
+        try {
+          const base64Image = await fileToBase64(file);
+          textarea.value = 'Processing...';
+          const text = await ocrImage(base64Image);
+          textarea.value = text;
+        } catch (err) {
+          textarea.value = 'Error: ' + err.message;
+        }
+      }));
+
+      const t1 = performance.now();
+      timerDiv.textContent = `Processing Time: ${Math.round(t1 - t0)} ms`;
+    });
+  </script>
+
+</body>
+
+</html>
