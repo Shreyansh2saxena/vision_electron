@@ -1,125 +1,16 @@
 // import React, { useState } from "react";
-// import * as XLSX from "xlsx";
-// import { saveAs } from "file-saver";
 
 // const GOOGLE_API_KEY = "AIzaSyBqPV-U4gUAGxWfVqs6KtKcEnf2q47cltE";
 // const GOOGLE_VISION_URL = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`;
-
-// const columns = [
-//   "Image No",
-//   "Panda Name",
-//   "Bahi Name",
-//   "Bahi Number",
-//   "Folio Number",
-//   "Data Position",
-//   "District",
-//   "Tehasil",
-//   "Station",
-//   "Postoffice",
-//   "City/Village",
-//   "From Which Place",
-//   "Caste",
-//   "Subcaste",
-//   "Individual ID",
-//   "Given Name",
-//   "Surname",
-//   "Relation",
-//   "Gender",
-//   "Family Id",
-//   "Ritual Name",
-//   "Date of Ritual",
-//   "Date of Ritual 2",
-//   "Whose Ritual",
-//   "Whose Ritual 2",
-//   "Contact Number 1",
-//   "Contact Number 2",
-//   "Flags & Exception",
-//   "Additional Information 1",
-//   "Additional Information 2",
-//   "Additional Information 3",
-//   "Additional Information 4",
-// ];
-
-// function getValueForColumn(col, family, member, imageNo, fileName) {
-  
-//   switch (col) {
-//     case "Image No":
-//       return imageNo || "";
-//     case "Panda Name":
-//       return family["Panda Name"] || "";
-//     case "Bahi Name":
-//       return family["Bahi Name"] || "";
-//     case "Bahi Number":
-//       return family["Bahi Number"] || "";
-//     case "Folio Number":
-//       return family["Folio Number"] || "";
-//     case "Data Position":
-//       return family["Data Position"] || "";
-//     case "District":
-//       return family["District"] || "";
-//     case "Tehasil":
-//       return family["Tehasil"] || "";
-//     case "Station":
-//       return family["Station"] || "";
-//     case "Postoffice":
-//       return family["Postoffice"] || "";
-//     case "City/Village":
-//       return family["City/Village"] || "";
-//     case "From Which Place":
-//       return family["From Which Place"] || "";
-//     case "Caste":
-//       return family["Caste"] || "";
-//     case "Subcaste":
-//       return family["Subcaste"] || "";
-//     case "Individual ID":
-//       return member?.["Individual ID"] || member?.IndividualID || "";
-//     case "Given Name":
-//       return member?.["Given Name"] || member?.["given Name"] || "";
-//     case "Surname":
-//       return member?.Surname || "";
-//     case "Relation":
-//       return member?.Relation || "";
-//     case "Gender":
-//       return member?.Gender || "";
-//     case "Family Id":
-//       return family["Family Id"] || family["Family ID"] || "";
-//     case "Ritual Name":
-//       return member?.["Ritual Name"] || "";
-//     case "Date of Ritual":
-//       return member?.["Date of Ritual"] || "";
-//     case "Date of Ritual 2":
-//       return member?.["Date of Ritual 2"] || "";
-//     case "Whose Ritual":
-//       return member?.["Whose Ritual"] || member?.["Whose Ritual 1"] || "";
-//     case "Whose Ritual 2":
-//       return member?.["Whose Ritual 2"] || member?.["Whose ritual2"] || "";
-//     case "Contact Number 1":
-//       return member?.["Contact Number 1"] || member?.["Contact no. 1"] || "";
-//     case "Contact Number 2":
-//       return member?.["Contact Number 2"] || member?.["contact no.2"] || "";
-//     case "Flags & Exception":
-//       return (
-//         member?.["Flags & Exception"] ||
-//         member?.["Flags and Eception(non understandable stuff)"] ||
-//         ""
-//       );
-//     case "Additional Information 1":
-//       return member?.["Additional Information 1"] || member?.["additional information1"] || "";
-//     case "Additional Information 2":
-//       return member?.["Additional Information 2"] || member?.["additional information2"] || "";
-//     case "Additional Information 3":
-//       return member?.["Additional Information 3"] || "";
-//     case "Additional Information 4":
-//       return member?.["Additional Information 4"] || "";
-//     default:
-//       return "";
-//   }
-// }
+// const BATCH_SIZE = 16;
+// const PAGE_SIZE = 10;
 
 // export default function Upload() {
 //   const [results, setResults] = useState([]);
 //   const [loading, setLoading] = useState(false);
 //   const [timer, setTimer] = useState(0);
+//   const [page, setPage] = useState(1);
+//   const [expandedIndex, setExpandedIndex] = useState(null);
 
 //   const fileToBase64 = (file) =>
 //     new Promise((resolve, reject) => {
@@ -137,43 +28,28 @@
 //       reader.readAsDataURL(file);
 //     });
 
-//   const ocrImage = async (base64Image) => {
-//     const requestBody = {
-//       requests: [
-//         {
-//           image: { content: base64Image },
-//           features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
-//         },
-//       ],
-//     };
+//   const ocrBatchImages = async (base64Images) => {
+//     const requests = base64Images.map((base64) => ({
+//       image: { content: base64 },
+//       features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+//     }));
 
 //     const response = await fetch(GOOGLE_VISION_URL, {
 //       method: "POST",
 //       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(requestBody),
+//       body: JSON.stringify({ requests }),
 //     });
 
-//     const result = await response.json();
-//     return result;
+//     const json = await response.json();
+//     return json.responses;
 //   };
 
-//   const extractStructuredData = async (ocrString) => {
-//     const response = await fetch("http://localhost:8080/api/extract/text", {
-//       method: "POST",
-//       headers: { "Content-Type": "text/plain" },
-//       body: ocrString,
-//     });
-
-//     const text = await response.text();
-//     let clean = text.trim();
-//     if (clean.startsWith("json")) clean = clean.replace("json", "");
-//     if (clean.endsWith("")) clean = clean.slice(0, -3);
-
-//     try {
-//       return JSON.parse(clean);
-//     } catch (e) {
-//       return { error: "Invalid JSON from server" };
+//   const chunkArray = (arr, size) => {
+//     const chunks = [];
+//     for (let i = 0; i < arr.length; i += size) {
+//       chunks.push(arr.slice(i, i + size));
 //     }
+//     return chunks;
 //   };
 
 //   const handleFiles = async (e) => {
@@ -182,133 +58,115 @@
 
 //     setResults([]);
 //     setTimer(0);
+//     setPage(1);
 //     setLoading(true);
 //     const t0 = performance.now();
 
-//     const imageResults = await Promise.all(
-//       files.map(async (file, index) => {
-//         const preview = await getImagePreview(file);
-//         let ocrText = "";
-//         let extractedData = null;
-//         let backendError = null;
+//     const fileData = [];
+//     for (let i = 0; i < files.length; i++) {
+//       const base64 = await fileToBase64(files[i]); // sequential, memory-safe
+//       const preview = await getImagePreview(files[i]);
+//       fileData.push({ file: files[i], base64, preview, index: i });
+//     }
 
-//         try {
-//           const base64 = await fileToBase64(file);
-//           const ocrResult = await ocrImage(base64);
-//           ocrText = ocrResult?.responses?.[0]?.fullTextAnnotation?.text || "No text found.";
-//           const data = await extractStructuredData(ocrText);
-//           extractedData = data;
-//         } catch (err) {
-//           backendError = err.message;
-//         }
+//     const batches = chunkArray(fileData, BATCH_SIZE);
+//     let finalResults = [];
 
+//     for (const batch of batches) {
+//       const base64s = batch.map((f) => f.base64);
+//       let responses = [];
+
+//       try {
+//         responses = await ocrBatchImages(base64s);
+//       } catch (err) {
+//         responses = batch.map(() => ({ error: err.message }));
+//       }
+
+//       const batchResults = batch.map((data, i) => {
+//         const response = responses[i];
 //         return {
-//           imageNo: index + 1,
-//           fileName: file.name,
-//           preview,
-//           ocrText,
-//           extractedData,
-//           backendError,
+//           imageNo: data.index + 1,
+//           fileName: data.file.name,
+//           preview: data.preview,
+//           ocrText: response?.fullTextAnnotation?.text || "No text found.",
+//           jsonResult: response,
 //         };
-//       })
-//     );
+//       });
+
+//       finalResults = [...finalResults, ...batchResults];
+//     }
 
 //     const t1 = performance.now();
 //     setTimer(Math.round(t1 - t0));
-//     setResults(imageResults);
+//     setResults(finalResults);
 //     setLoading(false);
 //   };
 
-//   const exportToExcel = (allData) => {
-//     const rows = [];
-
-//     allData.forEach((result) => {
-//       // If your backend returns an array at the top level
-//       if (!Array.isArray(result.extractedData)) return;
-//       result.extractedData.forEach((family) => {
-//         const members = Array.isArray(family.Members) ? family.Members : [family.Members || {}];
-//         members.forEach((member) => {
-//           const excelRow = {};
-//           columns.forEach((col) => {
-//             excelRow[col] = getValueForColumn(col, family, member, result.imageNo, result.fileName);
-//           });
-//           rows.push(excelRow);
-//         });
-//       });
-//     });
-
-//     if (rows.length === 0) return;
-
-//     // Create worksheet with headers in right order
-//     const worksheet = XLSX.utils.json_to_sheet(rows, { header: columns });
-//     const workbook = XLSX.utils.book_new();
-//     XLSX.utils.book_append_sheet(workbook, worksheet, "Extracted Data");
-//     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-//     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-//     saveAs(blob, "extracted_data.xlsx");
-//   };
+//   const paginatedResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
 //   return (
 //     <div className="max-w-5xl mx-auto p-6">
-//       <h1 className="text-2xl font-bold mb-4">Vision OCR + Extract + Excel</h1>
+//       <h1 className="text-2xl font-bold mb-4">Google Vision OCR (Batch Optimized)</h1>
 
-//       <input
-//         type="file"
-//         accept="image/*"
-//         multiple
-//         onChange={handleFiles}
-//         className="mb-4"
-//       />
+//       <input type="file" accept="image/*" multiple onChange={handleFiles} className="mb-4" />
 
 //       {loading && <p className="text-blue-500 mb-4">Processing...</p>}
 
 //       {timer > 0 && (
-//         <div className="font-semibold text-blue-600 mb-4">
-//           Processing Time: {timer} ms
+//         <p className="text-green-600 font-semibold mb-4">
+//           Total Processing Time: {timer} ms
+//         </p>
+//       )}
+
+//       {/* Pagination Controls */}
+//       {results.length > PAGE_SIZE && (
+//         <div className="mb-4 flex justify-between items-center">
+//           <button
+//             onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+//             disabled={page === 1}
+//             className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+//           >
+//             Prev
+//           </button>
+//           <span>Page {page}</span>
+//           <button
+//             onClick={() => setPage((prev) => (prev * PAGE_SIZE < results.length ? prev + 1 : prev))}
+//             disabled={page * PAGE_SIZE >= results.length}
+//             className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+//           >
+//             Next
+//           </button>
 //         </div>
 //       )}
 
-//       <button
-//         onClick={() => exportToExcel(results)}
-//         className="px-4 py-2 bg-green-600 text-white rounded mb-6"
-//         disabled={results.length === 0}
-//       >
-//         Download as Excel
-//       </button>
-
+//       {/* Results */}
 //       <div className="space-y-6">
-//         {results.map((res, index) => (
-//           <div
-//             key={index}
-//             className="border-b pb-6 mb-6 flex flex-col md:flex-row gap-6"
-//           >
-//             <img
-//               src={res.preview}
-//               alt={res.fileName}
-//               className="w-48 h-auto rounded shadow"
-//             />
+//         {paginatedResults.map((res, index) => (
+//           <div key={index} className="border-b pb-6 mb-6 flex flex-col md:flex-row gap-6">
+//             <img src={res.preview} alt={res.fileName} className="w-48 h-auto rounded shadow" />
 //             <div className="flex-1">
 //               <h2 className="font-semibold text-lg mb-2">{res.fileName}</h2>
-//               <label className="text-sm font-semibold text-gray-600">
-//                 Extracted OCR Text:
-//               </label>
+
+//               <label className="text-sm font-semibold text-gray-600">OCR Text:</label>
 //               <textarea
 //                 readOnly
-//                 className="w-full h-32 border rounded p-2 text-sm bg-gray-50 mb-4"
+//                 className="w-full h-24 border rounded p-2 text-sm bg-gray-50 mb-2"
 //                 value={res.ocrText}
 //               />
-//               <label className="text-sm font-semibold text-gray-600">
-//                 Backend JSON (cleaned):
-//               </label>
-//               <textarea
-//                 readOnly
-//                 className="w-full h-48 border rounded p-2 text-xs bg-gray-100"
-//                 value={JSON.stringify(res.extractedData, null, 2)}
-//               />
-//               {res.backendError && (
-//                 <div className="text-red-600 mt-2">
-//                   Backend Error: {res.backendError}
-//                 </div>
+
+//               <button
+//                 onClick={() => setExpandedIndex(index === expandedIndex ? null : index)}
+//                 className="text-blue-600 text-sm mb-2"
+//               >
+//                 {index === expandedIndex ? "Hide JSON" : "Show JSON"}
+//               </button>
+
+//               {index === expandedIndex && (
+//                 <textarea
+//                   readOnly
+//                   className="w-full h-48 border rounded p-2 text-xs bg-gray-100"
+//                   value={JSON.stringify(res.jsonResult, null, 2)}
+//                 />
 //               )}
 //             </div>
 //           </div>
@@ -321,25 +179,169 @@
 
 
 
-// Add this TypeScript declaration if using JS/TS with type checking
-/**
- * @typedef {Object} ElectronAPI
- * @property {(args: { fileName: string, content: any }) => Promise<{ success: boolean, error?: string }>} saveJson
- */
 
-/**
- * @type {Window & typeof globalThis & { electronAPI?: ElectronAPI }}
- */
+
+// // Uncomment this section if you want to use Electron's saveJson API
+
+
+// // Add this TypeScript declaration if using JS/TS with type checking
+// /**
+//  * @typedef {Object} ElectronAPI
+//  * @property {(args: { fileName: string, content: any }) => Promise<{ success: boolean, error?: string }>} saveJson
+//  */
+
+// /**
+//  * @type {Window & typeof globalThis & { electronAPI?: ElectronAPI }}
+//  */
  
+// import React, { useState } from "react";
+
+
+// const GOOGLE_API_KEY = process.env.REACT_APP_GOOGLE_API_KEY ;
+// const GOOGLE_VISION_URL = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`;
+
+// export default function VisionOCRJson() {
+//   const [results, setResults] = useState([]);
+//   const [loading, setLoading] = useState(false);
+
+//   const fileToBase64 = (file) =>
+//     new Promise((resolve, reject) => {
+//       const reader = new FileReader();
+//       reader.onload = () => resolve(reader.result.split(",")[1]);
+//       reader.onerror = reject;
+//       reader.readAsDataURL(file);
+//     });
+
+//   const chunkArray = (arr, size) => {
+//     const chunks = [];
+//     for (let i = 0; i < arr.length; i += size) {
+//       chunks.push(arr.slice(i, i + size));
+//     }
+//     return chunks;
+//   };
+
+//   const saveJsonToDisk = async (fileName, jsonData) => {
+//     if (window.electronAPI?.saveJson) {
+//       const result = await window.electronAPI.saveJson({ fileName, content: jsonData });
+//       if (!result.success) {
+//         console.error(" Failed to save JSON:", result.error);
+//       }
+//     } else {
+//       console.warn("Electron API not available. Falling back to browser download.");
+//       const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
+//       const url = URL.createObjectURL(blob);
+//       const a = document.createElement("a");
+//       a.href = url;
+//       a.download = fileName;
+//       a.click();
+//       URL.revokeObjectURL(url);
+//     }
+//   };
+
+//   const handleFiles = async (e) => {
+//     const files = Array.from(e.target.files);
+//     setLoading(true);
+//     const output = [];
+
+//     const chunks = chunkArray(files, 16);
+
+//     for (let i = 0; i < chunks.length; i++) {
+//       const chunk = chunks[i];
+
+//       const batchResults = await Promise.all(
+//         chunk.map(async (file, idx) => {
+//           const base64 = await fileToBase64(file);
+
+//           const requestBody = {
+//             requests: [
+//               {
+//                 image: { content: base64 },
+//                 features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+//               },
+//             ],
+//           };
+
+//           const response = await fetch(GOOGLE_VISION_URL, {
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify(requestBody),
+//           });
+
+//           const resultJson = await response.json();
+//           const ocrText =
+//             resultJson?.responses?.[0]?.fullTextAnnotation?.text || "No OCR text found.";
+
+//           const fileNameWithoutExt = file.name.split(".")[0];
+//           await saveJsonToDisk(`${fileNameWithoutExt}_i1.json`, resultJson);
+
+//           return {
+//             fileName: file.name,
+//             preview: URL.createObjectURL(file),
+//             ocrText,
+//             rawJson: resultJson,
+//           };
+//         })
+//       );
+
+//       output.push(...batchResults);
+//     }
+
+//     setResults(output);
+//     setLoading(false);
+//   };
+
+//   return (
+//     <div className="max-w-5xl mx-auto p-6">
+//       <h1 className="text-2xl font-bold mb-4">Google Vision OCR: Text + JSON Save</h1>
+
+//       <input
+//         type="file"
+//         accept="image/*"
+//         multiple
+//         onChange={handleFiles}
+//         className="mb-4"
+//       />
+
+//       {loading && <p className="text-blue-600 font-medium">Processing images in batches...</p>}
+
+//       {results.map((res, index) => (
+//         <div key={index} className="border p-4 my-6 rounded shadow bg-white">
+//           <h2 className="font-semibold text-lg mb-2">{res.fileName}</h2>
+//           <img src={res.preview} alt={res.fileName} className="w-48 mb-4 rounded shadow" />
+
+//           <h3 className="text-sm font-semibold text-gray-600">🔍 OCR Text:</h3>
+//           <textarea
+//             readOnly
+//             value={res.ocrText}
+//             className="w-full h-40 p-2 border bg-gray-50 text-sm mb-4"
+//           />
+
+//           <h3 className="text-sm font-semibold text-gray-600"> Raw JSON:</h3>
+//           <textarea
+//             readOnly
+//             value={JSON.stringify(res.rawJson, null, 2)}
+//             className="w-full h-64 p-2 border bg-gray-100 text-xs font-mono"
+//           />
+//         </div>
+//       ))}
+//     </div>
+//   );
+// }
+
+
+
+
+
 import React, { useState } from "react";
 
-
-const GOOGLE_API_KEY = process.env.REACT_APP_GOOGLE_API_KEY ;
+const GOOGLE_API_KEY = process.env.REACT_APP_GOOGLE_API_KEY; // Replace with your key
 const GOOGLE_VISION_URL = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`;
+const MAX_FILES = 16;
 
-export default function VisionOCRJson() {
+export default function Upload() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [processingTime, setProcessingTime] = useState(0);
 
   const fileToBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -349,87 +351,97 @@ export default function VisionOCRJson() {
       reader.readAsDataURL(file);
     });
 
-  const chunkArray = (arr, size) => {
-    const chunks = [];
-    for (let i = 0; i < arr.length; i += size) {
-      chunks.push(arr.slice(i, i + size));
-    }
-    return chunks;
-  };
-
-  const saveJsonToDisk = async (fileName, jsonData) => {
-    if (window.electronAPI?.saveJson) {
-      const result = await window.electronAPI.saveJson({ fileName, content: jsonData });
-      if (!result.success) {
-        console.error(" Failed to save JSON:", result.error);
-      }
-    } else {
-      console.warn("Electron API not available. Falling back to browser download.");
-      const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
   const handleFiles = async (e) => {
     const files = Array.from(e.target.files);
-    setLoading(true);
-    const output = [];
-
-    const chunks = chunkArray(files, 16);
-
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-
-      const batchResults = await Promise.all(
-        chunk.map(async (file, idx) => {
-          const base64 = await fileToBase64(file);
-
-          const requestBody = {
-            requests: [
-              {
-                image: { content: base64 },
-                features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
-              },
-            ],
-          };
-
-          const response = await fetch(GOOGLE_VISION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-          });
-
-          const resultJson = await response.json();
-          const ocrText =
-            resultJson?.responses?.[0]?.fullTextAnnotation?.text || "No OCR text found.";
-
-          const fileNameWithoutExt = file.name.split(".")[0];
-          await saveJsonToDisk(`${fileNameWithoutExt}_i1.json`, resultJson);
-
-          return {
-            fileName: file.name,
-            preview: URL.createObjectURL(file),
-            ocrText,
-            rawJson: resultJson,
-          };
-        })
-      );
-
-      output.push(...batchResults);
+    if (files.length > MAX_FILES) {
+      alert(`Please select only up to ${MAX_FILES} images.`);
+      return;
     }
 
-    setResults(output);
+    setLoading(true);
+    setResults([]);
+    setProcessingTime(0);
+    const t0 = performance.now();
+
+    const processed = await Promise.all(
+      files.map(async (file) => {
+        const base64 = await fileToBase64(file);
+
+        const requestBody = {
+          requests: [
+            {
+              image: { content: base64 },
+              features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+            },
+          ],
+        };
+
+        const response = await fetch(GOOGLE_VISION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+
+        const resultJson = await response.json();
+        const ocrText =
+          resultJson?.responses?.[0]?.fullTextAnnotation?.text ||
+          "No OCR text found.";
+
+        return {
+          fileName: file.name,
+          imageNo: file.name.replace(/\.[^/.]+$/, ""),
+          folioNo: "",
+          preview: URL.createObjectURL(file),
+          ocrText,
+          rawJson: resultJson,
+        };
+      })
+    );
+
+    const t1 = performance.now();
+    setProcessingTime(Math.round(t1 - t0));
+    setResults(processed);
     setLoading(false);
   };
 
+  const handleFolioChange = (index, value) => {
+    const updated = [...results];
+    updated[index].folioNo = value;
+    setResults(updated);
+  };
+
+const handleSubmitAll = async () => {
+  // Check for any missing folioNo before sending
+  for (const res of results) {
+    if (!res.folioNo) {
+      alert(`❗ Please enter folio number for image: ${res.fileName}`);
+      return;
+    }
+  }
+
+  // Build the batch array in your desired structure
+  const batch = results.map(res => ({
+    imageNo: res.imageNo,
+    folioNo: res.folioNo,
+    text: res.ocrText, // use ocrText as the text field
+  }));
+
+  try {
+    await fetch("http://localhost:8081/api/bahi/extract/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batch),
+    });
+    alert("✅ All OCR results sent to the backend.");
+  } catch (err) {
+    console.error("API Error:", err);
+    alert("❌ API Error: See console for details.");
+  }
+};
+
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Google Vision OCR: Text + JSON Save</h1>
+      <h1 className="text-2xl font-bold mb-4">Google Vision OCR (Max 16 Images)</h1>
 
       <input
         type="file"
@@ -439,21 +451,53 @@ export default function VisionOCRJson() {
         className="mb-4"
       />
 
-      {loading && <p className="text-blue-600 font-medium">Processing images in batches...</p>}
+      {loading && <p className="text-blue-500 mb-4">Processing images...</p>}
+
+      {processingTime > 0 && (
+        <p className="text-green-600 mb-4 font-semibold">
+          Total Processing Time: {processingTime} ms
+        </p>
+      )}
+
+      {results.length > 0 && (
+        <button
+          onClick={handleSubmitAll}
+          className="mb-6 px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          ✅ Submit All to API
+        </button>
+      )}
 
       {results.map((res, index) => (
-        <div key={index} className="border p-4 my-6 rounded shadow bg-white">
-          <h2 className="font-semibold text-lg mb-2">{res.fileName}</h2>
-          <img src={res.preview} alt={res.fileName} className="w-48 mb-4 rounded shadow" />
+        <div key={index} className="border p-4 mb-6 rounded shadow bg-white">
+          <h2 className="font-semibold text-lg mb-2">{res.imageNo}</h2>
+          <img
+            src={res.preview}
+            alt={res.fileName}
+            className="w-48 mb-4 rounded shadow"
+          />
 
-          <h3 className="text-sm font-semibold text-gray-600">🔍 OCR Text:</h3>
+          <div className="mb-4">
+            <label className="text-sm font-semibold text-gray-700 mr-2">
+              Folio No:
+            </label>
+            <input
+              type="number"
+              value={res.folioNo}
+              onChange={(e) => handleFolioChange(index, e.target.value)}
+              className="p-1 border rounded w-32"
+              required
+            />
+          </div>
+
+          <label className="text-sm font-semibold text-gray-600">🔍 OCR Text:</label>
           <textarea
             readOnly
             value={res.ocrText}
             className="w-full h-40 p-2 border bg-gray-50 text-sm mb-4"
           />
 
-          <h3 className="text-sm font-semibold text-gray-600"> Raw JSON:</h3>
+          <label className="text-sm font-semibold text-gray-600">📦 Raw JSON:</label>
           <textarea
             readOnly
             value={JSON.stringify(res.rawJson, null, 2)}
